@@ -34,27 +34,26 @@ html, body, [class*="css"] { font-family: 'Noto Sans KR', sans-serif; }
 .view-table tr:hover td { background:#f0f7ff; }
 
 /* 셀 색상 — 파스텔톤 */
-.c-fixed { background:#fff3e0 !important; color:#e65100; }      /* 고정: 연주황 */
-.c-orig  { background:#e8f5e9 !important; color:#2e7d32; }      /* 원: 연초록 */
-.c-cross { background:#e3f2fd !important; color:#1565c0; }      /* 교차: 연파랑 */
-.c-edit  { background:#fff !important; border:2px dashed #9e9e9e !important; }  /* 수정: 테두리 */
-.c-cancel{ background:#f5f5f5 !important; color:#9e9e9e; }      /* 결강: 연회색 */
-.c-hol   { background:#ffebee !important; color:#c62828; }      /* 공휴일: 연빨강 */
-.c-exam  { background:#f3e5f5 !important; color:#6a1b9a; }      /* 시험: 연보라 */
+.c-fixed { background:#fff3e0 !important; color:#e65100; }
+.c-orig  { background:#e8f5e9 !important; color:#2e7d32; }
+.c-cross { background:#e3f2fd !important; color:#1565c0; }
+.c-edit  { background:#fff !important; border:2px dashed #9e9e9e !important; }
+.c-cancel{ background:#f5f5f5 !important; color:#9e9e9e; }
+.c-hol   { background:#ffebee !important; color:#c62828; }
+.c-exam  { background:#f3e5f5 !important; color:#6a1b9a; }
 
-/* 날짜 관련 (인쇄 미적용) */
+/* 날짜 색상 (인쇄 미적용) */
 .d-past  { color:#bdbdbd !important; }
 .d-today { background:#ffeb3b !important; color:#000 !important; font-weight:700; }
 
 /* 원/교 뱃지 */
 .b-orig  { background:#c8e6c9; color:#2e7d32; padding:1px 5px; border-radius:6px; font-size:0.65rem; font-weight:600; }
 .b-cross { background:#bbdefb; color:#1565c0; padding:1px 5px; border-radius:6px; font-size:0.65rem; font-weight:600; }
-.b-fixed { background:#ffe0b2; color:#e65100; padding:1px 5px; border-radius:6px; font-size:0.65rem; font-weight:600; }
 
 /* 주차 구분 */
 .wk-sep td { background:#eceff1 !important; font-weight:600; color:#455a64; font-size:0.68rem; padding:2px; }
 
-/* ── 인쇄 스타일 ── */
+/* ── 인쇄 ── */
 @media print {
     .stSidebar, .stButton, .stTabs, [data-testid="stToolbar"],
     [data-testid="stHeader"], .no-print { display:none !important; }
@@ -63,7 +62,6 @@ html, body, [class*="css"] { font-family: 'Noto Sans KR', sans-serif; }
     .view-table { font-size:0.62rem; }
     .view-table th { background:#333 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     .view-table td { padding:1px 2px; }
-    /* 인쇄시 날짜 색상 미적용 */
     .d-past { color:inherit !important; }
     .d-today { background:transparent !important; color:inherit !important; font-weight:normal; }
 }
@@ -90,7 +88,7 @@ def get_holidays(year):
 
 # ── 상수 ────────────────────────────────────────────────
 WEEKDAYS = ["월","화","수","목","금"]
-BLOCKED_CELLS = {("수",6), ("수",7)}  # 창체 고정
+BLOCKED_CELLS = {("수",6), ("수",7)}
 
 # ── 세션 초기화 ─────────────────────────────────────────
 def init():
@@ -99,20 +97,16 @@ def init():
         "cur_subj": "고급지구과학",
         "year": 2026,
         "class_checks": {"고급지구과학": [True]*8},
-        # 통합 시간표: {과목: {"요일_교시": "값"}}
-        # 값 형식: "6" (고정), "8,4" (원=8반, 교차=4반), "창체" (블록)
         "timetable": {"고급지구과학": {}},
-        # 학사일정: {과목: {날짜str: {"type":"원"/"교"/"결강"/"", "day_override":"", "note":""}}}
         "schedule": {"고급지구과학": {}},
-        # 시험: {과목: {"mid_start":"","mid_end":"","fin_start":"","fin_end":""}}
-        "exams": {"고급지구과학": {"mid_start":"","mid_end":"","fin_start":"","fin_end":""}},
-        # 학기
-        "sem_start": {"1학기":"2026-03-02","2학기":"2026-09-01"},
-        "sem_end": {"1학기":"2026-07-17","2학기":"2026-12-31"},
+        "exams": {"고급지구과학": {
+            "mid_start": date(2026,4,23), "mid_end": date(2026,4,24),
+            "fin_start": date(2026,7,1), "fin_end": date(2026,7,2),
+        }},
+        "sem_start": {"1학기": date(2026,3,2), "2학기": date(2026,9,1)},
+        "sem_end": {"1학기": date(2026,7,17), "2학기": date(2026,12,31)},
         "cur_sem": "1학기",
-        # 진도 수정 (오버라이드): {과목: {날짜str: {반str: 차시int or ""}}}
         "overrides": {"고급지구과학": {}},
-        # 차시 메모: {과목: {차시int: 메모str}}
         "lesson_notes": {"고급지구과학": {}},
     }
     for k, v in d.items():
@@ -123,7 +117,7 @@ init()
 def ensure_subj(s):
     for key, default in [
         ("class_checks",[False]*8),("timetable",{}),("schedule",{}),
-        ("exams",{"mid_start":"","mid_end":"","fin_start":"","fin_end":""}),
+        ("exams",{"mid_start":None,"mid_end":None,"fin_start":None,"fin_end":None}),
         ("overrides",{}),("lesson_notes",{})
     ]:
         if s not in st.session_state[key]:
@@ -133,25 +127,19 @@ def get_classes(subj):
     checks = st.session_state.class_checks.get(subj, [False]*8)
     return [f"{i+1}반" for i in range(8) if i < len(checks) and checks[i]]
 
-def get_dates(sem):
-    s = date.fromisoformat(st.session_state.sem_start[sem])
-    e = date.fromisoformat(st.session_state.sem_end[sem])
+def get_dates(start, end):
     out = []
-    c = s
-    while c <= e:
+    c = start
+    while c <= end:
         out.append(c)
         c += timedelta(days=1)
     return out
 
+def get_weeknum(d, start):
+    return (d - start).days // 7 + 1
+
 # ── 시간표 파싱 ─────────────────────────────────────────
 def parse_tt_cell(val):
-    """
-    시간표 셀 값 파싱.
-    "6" → {"fixed":"6반"}
-    "8,4" → {"orig":"8반","cross":"4반"}
-    "창체" → {"blocked":"창체"}
-    "" → None
-    """
     val = str(val).strip()
     if not val or val == "nan":
         return None
@@ -165,7 +153,6 @@ def parse_tt_cell(val):
     return None
 
 def get_effective_day(subj, d):
-    """해당 날짜의 실제 수업 요일 (요일변경 반영)"""
     sch = st.session_state.schedule.get(subj, {}).get(d.isoformat(), {})
     override_day = sch.get("day_override", "")
     if override_day and override_day in WEEKDAYS:
@@ -173,7 +160,6 @@ def get_effective_day(subj, d):
     return WEEKDAYS[d.weekday()] if d.weekday() < 5 else ""
 
 def get_schedule_type(subj, d):
-    """해당 날짜의 일정 유형"""
     dk = d.isoformat()
     sch = st.session_state.schedule.get(subj, {}).get(dk, {})
     return sch.get("type", "")
@@ -185,22 +171,15 @@ def get_note(subj, d):
 
 def is_exam_day(subj, d):
     ex = st.session_state.exams.get(subj, {})
-    dk = d.isoformat()
     for prefix, label in [("mid","중간고사"),("fin","기말고사")]:
-        s = ex.get(f"{prefix}_start","")
-        e = ex.get(f"{prefix}_end","")
-        if s and e:
-            try:
-                if date.fromisoformat(s) <= d <= date.fromisoformat(e):
-                    return label
-            except: pass
+        s = ex.get(f"{prefix}_start")
+        e = ex.get(f"{prefix}_end")
+        if s and e and isinstance(s, date) and isinstance(e, date):
+            if s <= d <= e:
+                return label
     return ""
 
 def get_classes_for_date(subj, d):
-    """
-    해당 날짜에 수업 있는 반 목록과 유형 반환.
-    Returns: [(반str, 유형str)] 유형: "fixed"/"orig"/"cross"
-    """
     holidays = get_holidays(st.session_state.year)
     if d.weekday() >= 5 or d.isoformat() in holidays:
         return []
@@ -209,14 +188,11 @@ def get_classes_for_date(subj, d):
     stype = get_schedule_type(subj, d)
     if stype == "결강":
         return []
-
     eff_day = get_effective_day(subj, d)
     if not eff_day:
         return []
-
     tt = st.session_state.timetable.get(subj, {})
     results = []
-
     for period in range(1, 8):
         if (eff_day, period) in BLOCKED_CELLS:
             continue
@@ -234,44 +210,35 @@ def get_classes_for_date(subj, d):
                 results.append((parsed["orig"], "orig"))
     return results
 
-holidays = get_holidays(st.session_state.year)
-
 # ── 진도 자동 계산 ──────────────────────────────────────
-def compute_progress(subj, sem, classes):
-    """
-    반별로 수업 날짜 순서대로 차시 자동 배정.
-    오버라이드가 있으면 그 값을 우선.
-    Returns: {날짜str: {반str: {"차시":int,"type":str,"edited":bool}}}
-    """
+def compute_progress(subj, sem_start, sem_end, classes):
+    holidays = get_holidays(st.session_state.year)
     try:
-        all_dates = get_dates(sem)
+        all_dates = get_dates(sem_start, sem_end)
     except:
-        return {}
+        return {}, {}
 
     school_dates = [d for d in all_dates if d.weekday() < 5]
     overrides = st.session_state.overrides.get(subj, {})
 
-    # 반별 차시 카운터
     class_counter = {cls: 1 for cls in classes}
     progress = {}
+    total_hours = {cls: 0 for cls in classes}
 
     for d in school_dates:
         dk = d.isoformat()
         hol = holidays.get(dk, "")
         exam = is_exam_day(subj, d)
         stype = get_schedule_type(subj, d)
-
         progress[dk] = {}
 
         if hol or exam or stype == "결강":
             continue
 
         cls_list = get_classes_for_date(subj, d)
-
         for cls, ctype in cls_list:
             if cls not in classes:
                 continue
-            # 오버라이드 확인
             ov = overrides.get(dk, {}).get(cls, None)
             if ov is not None and ov != "":
                 try:
@@ -284,7 +251,12 @@ def compute_progress(subj, sem, classes):
                 progress[dk][cls] = {"차시": lesson, "type": ctype, "edited": False}
                 class_counter[cls] += 1
 
-    return progress
+            if cls in total_hours:
+                total_hours[cls] += 1
+
+    return progress, total_hours
+
+holidays = get_holidays(st.session_state.year)
 
 # ── 사이드바 ────────────────────────────────────────────
 with st.sidebar:
@@ -320,18 +292,33 @@ with st.sidebar:
     st.session_state.year = c1.selectbox("학년도", [2025,2026,2027], index=1, key="yr")
     st.session_state.cur_sem = c2.selectbox("학기", ["1학기","2학기"], key="sm")
     sem = st.session_state.cur_sem
-    st.session_state.sem_start[sem] = st.text_input("학기 시작", st.session_state.sem_start[sem], key="s1")
-    st.session_state.sem_end[sem] = st.text_input("학기 종료", st.session_state.sem_end[sem], key="s2")
+
+    st.session_state.sem_start[sem] = st.date_input(
+        "학기 시작일", value=st.session_state.sem_start[sem],
+        format="YYYY-MM-DD", key="s1")
+    st.session_state.sem_end[sem] = st.date_input(
+        "학기 종료일", value=st.session_state.sem_end[sem],
+        format="YYYY-MM-DD", key="s2")
 
     st.divider()
 
     # 시험 날짜
     st.markdown('<div class="section-title">📝 시험 날짜</div>', unsafe_allow_html=True)
-    ex = st.session_state.exams.get(subj, {"mid_start":"","mid_end":"","fin_start":"","fin_end":""})
-    ex["mid_start"] = st.text_input("중간 시작", ex.get("mid_start",""), key="ms", placeholder="2026-04-23")
-    ex["mid_end"]   = st.text_input("중간 종료", ex.get("mid_end",""), key="me", placeholder="2026-04-24")
-    ex["fin_start"] = st.text_input("기말 시작", ex.get("fin_start",""), key="fs", placeholder="2026-07-01")
-    ex["fin_end"]   = st.text_input("기말 종료", ex.get("fin_end",""), key="fe", placeholder="2026-07-02")
+    ex = st.session_state.exams.get(subj, {
+        "mid_start":None,"mid_end":None,"fin_start":None,"fin_end":None})
+
+    mc1, mc2 = st.columns(2)
+    ex["mid_start"] = mc1.date_input("중간 시작", value=ex.get("mid_start"),
+        format="YYYY-MM-DD", key="ms")
+    ex["mid_end"] = mc2.date_input("중간 종료", value=ex.get("mid_end"),
+        format="YYYY-MM-DD", key="me")
+
+    fc1, fc2 = st.columns(2)
+    ex["fin_start"] = fc1.date_input("기말 시작", value=ex.get("fin_start"),
+        format="YYYY-MM-DD", key="fs")
+    ex["fin_end"] = fc2.date_input("기말 종료", value=ex.get("fin_end"),
+        format="YYYY-MM-DD", key="fe")
+
     st.session_state.exams[subj] = ex
 
     st.divider()
@@ -351,6 +338,8 @@ with st.sidebar:
 subj = st.session_state.cur_subj
 sem = st.session_state.cur_sem
 classes = get_classes(subj)
+sem_start = st.session_state.sem_start[sem]
+sem_end = st.session_state.sem_end[sem]
 
 st.markdown(f'<div class="main-title">📚 {subj} — {st.session_state.year}학년도 {sem}</div>', unsafe_allow_html=True)
 
@@ -364,28 +353,27 @@ with tab1:
         st.warning("사이드바에서 반을 먼저 선택해주세요.")
         st.stop()
 
-    try:
-        all_dates = get_dates(sem)
-    except:
+    all_dates = get_dates(sem_start, sem_end)
+    if not all_dates:
         st.error("학기 날짜를 확인해주세요.")
         st.stop()
 
     today = date.today()
     start_d = all_dates[0]
-    progress = compute_progress(subj, sem, classes)
+    progress, total_hours = compute_progress(subj, sem_start, sem_end, classes)
     ex = st.session_state.exams.get(subj, {})
 
     # 시기 자동 선택
     default_view = "전체"
-    try:
-        mid_end = date.fromisoformat(ex.get("mid_end",""))
-        fin_start = date.fromisoformat(ex.get("fin_start",""))
-        if today <= mid_end:
-            default_view = "중간고사"
-        elif today < fin_start:
-            default_view = "기말고사"
-    except:
-        pass
+    mid_end_d = ex.get("mid_end")
+    fin_start_d = ex.get("fin_start")
+    fin_end_d = ex.get("fin_end")
+    if mid_end_d and fin_start_d:
+        if isinstance(mid_end_d, date) and isinstance(fin_start_d, date):
+            if today <= mid_end_d:
+                default_view = "중간고사"
+            elif today <= (fin_end_d if fin_end_d and isinstance(fin_end_d, date) else sem_end):
+                default_view = "기말고사"
 
     top_c1, top_c2 = st.columns([1, 5])
     with top_c1:
@@ -398,16 +386,20 @@ with tab1:
 
     # 날짜 필터
     school_dates = [d for d in all_dates if d.weekday() < 5]
-    try:
-        if view_mode == "중간고사" and ex.get("mid_end"):
-            cutoff = date.fromisoformat(ex["mid_end"])
-            school_dates = [d for d in school_dates if d <= cutoff]
-        elif view_mode == "기말고사" and ex.get("mid_end") and ex.get("fin_end"):
-            mid_e = date.fromisoformat(ex["mid_end"])
-            fin_e = date.fromisoformat(ex["fin_end"])
-            school_dates = [d for d in school_dates if d > mid_e and d <= fin_e]
-    except:
-        pass
+    if view_mode == "중간고사" and mid_end_d and isinstance(mid_end_d, date):
+        school_dates = [d for d in school_dates if d <= mid_end_d]
+    elif view_mode == "기말고사":
+        filter_start = mid_end_d + timedelta(days=1) if mid_end_d and isinstance(mid_end_d, date) else sem_start
+        filter_end = fin_end_d if fin_end_d and isinstance(fin_end_d, date) else sem_end
+        school_dates = [d for d in school_dates if filter_start <= d <= filter_end]
+
+    if not school_dates:
+        st.info("해당 기간에 수업일이 없습니다.")
+        st.stop()
+
+    # 시수 요약
+    summary = " | ".join([f"**{cls}**: {total_hours.get(cls,0)}시간" for cls in classes])
+    st.caption(f"반별 총 시수 (전체): {summary}")
 
     # ── 좌우 배치 ──
     left_col, right_col = st.columns([3, 2])
@@ -415,17 +407,6 @@ with tab1:
     # ── 왼쪽: 날짜별 진도 현황 ──
     with left_col:
         st.markdown('<div class="section-title">📋 날짜별 진도 현황</div>', unsafe_allow_html=True)
-
-        # 반별 총 시수 계산
-        total_hours = {cls: 0 for cls in classes}
-        for dk, day_data in progress.items():
-            for cls, info in day_data.items():
-                if info.get("차시") and cls in total_hours:
-                    total_hours[cls] += 1
-
-        # 시수 요약
-        summary = " | ".join([f"**{cls}**: {total_hours[cls]}시간" for cls in classes])
-        st.caption(f"반별 총 시수: {summary}")
 
         cls_th = "".join(f"<th>{c}</th>" for c in classes)
         html = f"""<div style="overflow-x:auto; max-height:620px; overflow-y:auto;">
@@ -447,24 +428,18 @@ with tab1:
             is_past = (d < today)
             day_prog = progress.get(dk, {})
 
-            # 주차 구분
             if wk != prev_wk:
                 html += f'<tr class="wk-sep"><td colspan="{4+len(classes)+1}">{wk}주차</td></tr>'
                 prev_wk = wk
 
-            # 날짜 셀 클래스
-            date_cls = ""
-            if is_td: date_cls = "d-today"
-            elif is_past: date_cls = "d-past"
+            date_cls = "d-today" if is_td else ("d-past" if is_past else "")
 
-            # 요일 표시 (변경 시 표시)
             day_display = actual_day
             if eff_day != actual_day:
                 day_display = f"{actual_day}→{eff_day}"
 
-            wk_cell = str(wk) if d.weekday() == 0 or (prev_wk != wk) else ""
+            wk_cell = str(wk) if d.weekday() == 0 else ""
 
-            # 원/교 뱃지
             if stype == "원":
                 badge = '<span class="b-orig">원</span>'
             elif stype == "교":
@@ -472,7 +447,6 @@ with tab1:
             else:
                 badge = ""
 
-            # 반별 셀
             cells = ""
             for cls in classes:
                 if hol:
@@ -486,7 +460,6 @@ with tab1:
                     ln = info.get("차시","")
                     ctype = info.get("type","")
                     edited = info.get("edited", False)
-
                     if edited:
                         cell_cls = "c-edit"
                     elif ctype == "fixed":
@@ -501,7 +474,6 @@ with tab1:
                 else:
                     cells += '<td>-</td>'
 
-            # 비고
             note_parts = []
             if hol: note_parts.append(hol)
             if exam: note_parts.append(exam)
@@ -522,28 +494,24 @@ with tab1:
         html += "</tbody></table></div>"
         st.markdown(html, unsafe_allow_html=True)
 
-    # ── 오른쪽: 차시별 수업 날짜 + 시간표 ──
+    # ── 오른쪽 ──
     with right_col:
+        # ── 차시별 수업 날짜 ──
         st.markdown('<div class="section-title">📅 차시별 수업 날짜</div>', unsafe_allow_html=True)
 
-        # 차시별 날짜 매핑 구축
-        lesson_dates = {}  # {반: {차시: (날짜str, type)}}
+        lesson_dates = {}
         for dk, day_data in progress.items():
             for cls, info in day_data.items():
                 ln = info.get("차시")
                 if ln and isinstance(ln, int):
                     lesson_dates.setdefault(cls, {})[ln] = (dk, info.get("type",""))
 
-        # 최대 차시 수 계산
-        max_lesson = 0
-        for cls in classes:
-            if cls in total_hours:
-                max_lesson = max(max_lesson, total_hours[cls])
+        max_lesson = max(total_hours.values()) if total_hours else 0
 
         if max_lesson > 0:
             notes = st.session_state.lesson_notes.get(subj, {})
             cls_th2 = "".join(f"<th>{c}</th>" for c in classes)
-            html2 = f"""<div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
+            html2 = f"""<div style="overflow-x:auto; max-height:380px; overflow-y:auto;">
             <table class="view-table">
             <thead><tr><th>차시</th>{cls_th2}<th>메모</th></tr></thead><tbody>"""
 
@@ -564,7 +532,6 @@ with tab1:
                             cells2 += f'<td>{dk}</td>'
                     else:
                         cells2 += '<td>-</td>'
-
                 memo = notes.get(str(ln), "")
                 html2 += f'<tr><td>{ln}</td>{cells2}<td style="font-size:0.65rem;text-align:left;color:#546e7a;">{memo}</td></tr>'
 
@@ -582,47 +549,33 @@ with tab1:
             html3 = f"""<table class="view-table">
             <thead><tr><th></th><th>요일</th>{cls_th3}</tr></thead><tbody>"""
 
-            # 원시간표
-            for day in WEEKDAYS:
-                cells3 = ""
-                for cls in classes:
-                    periods = []
-                    for p in range(1, 8):
-                        if (day, p) in BLOCKED_CELLS:
-                            continue
-                        key = f"{day}_{p}"
-                        val = tt.get(key, "")
-                        parsed = parse_tt_cell(val)
-                        if not parsed: continue
-                        if "fixed" in parsed and parsed["fixed"] == cls:
-                            periods.append(f"<span style='color:#e65100;'>{p}</span>")
-                        elif "orig" in parsed and parsed["orig"] == cls:
-                            periods.append(f"<span style='color:#2e7d32;'>{p}</span>")
-                    cells3 += f'<td>{"·".join(periods) if periods else "-"}</td>'
-                label = '<span class="b-orig">원</span>' if day == "월" else ""
-                html3 += f'<tr><td>{label}</td><td>{day}</td>{cells3}</tr>'
+            for label_name, match_key in [("원", "orig"), ("교", "cross")]:
+                badge_cls = "b-orig" if label_name == "원" else "b-cross"
+                for day in WEEKDAYS:
+                    cells3 = ""
+                    for cls in classes:
+                        periods = []
+                        for p in range(1, 8):
+                            if (day, p) in BLOCKED_CELLS:
+                                continue
+                            key = f"{day}_{p}"
+                            val = tt.get(key, "")
+                            parsed = parse_tt_cell(val)
+                            if not parsed:
+                                continue
+                            if "fixed" in parsed and parsed["fixed"] == cls:
+                                periods.append(f"<span style='color:#e65100;font-weight:600;'>{p}</span>")
+                            elif match_key in parsed and parsed[match_key] == cls:
+                                if match_key == "orig":
+                                    periods.append(f"<span style='color:#2e7d32;'>{p}</span>")
+                                else:
+                                    periods.append(f"<span style='color:#1565c0;'>{p}</span>")
+                        cells3 += f'<td>{"·".join(periods) if periods else "-"}</td>'
+                    show_label = f'<span class="{badge_cls}">{label_name}</span>' if day == "월" else ""
+                    html3 += f'<tr><td>{show_label}</td><td>{day}</td>{cells3}</tr>'
 
-            html3 += f'<tr class="wk-sep"><td colspan="{2+len(classes)}"></td></tr>'
-
-            # 교차시간표
-            for day in WEEKDAYS:
-                cells3 = ""
-                for cls in classes:
-                    periods = []
-                    for p in range(1, 8):
-                        if (day, p) in BLOCKED_CELLS:
-                            continue
-                        key = f"{day}_{p}"
-                        val = tt.get(key, "")
-                        parsed = parse_tt_cell(val)
-                        if not parsed: continue
-                        if "fixed" in parsed and parsed["fixed"] == cls:
-                            periods.append(f"<span style='color:#e65100;'>{p}</span>")
-                        elif "cross" in parsed and parsed["cross"] == cls:
-                            periods.append(f"<span style='color:#1565c0;'>{p}</span>")
-                    cells3 += f'<td>{"·".join(periods) if periods else "-"}</td>'
-                label = '<span class="b-cross">교</span>' if day == "월" else ""
-                html3 += f'<tr><td>{label}</td><td>{day}</td>{cells3}</tr>'
+                if label_name == "원":
+                    html3 += f'<tr class="wk-sep"><td colspan="{2+len(classes)}"></td></tr>'
 
             html3 += "</tbody></table>"
             st.markdown(html3, unsafe_allow_html=True)
@@ -637,10 +590,10 @@ with tab2:
     st.markdown('<div class="section-title">⏰ 시간표 입력</div>', unsafe_allow_html=True)
     st.markdown("""
     **입력 방법:**
-    - 고정 수업 → 반 번호만 입력 (예: `6`)
-    - 교차 수업 → 쉼표로 구분. 앞=원시간표, 뒤=교차시간표 (예: `8,4`)
+    - 고정 수업 → 반 번호만 (예: `6`)
+    - 교차 수업 → 쉼표 구분, 앞=원시간표 뒤=교차시간표 (예: `8,4`)
     - 빈칸 → 수업 없음
-    - 수요일 6,7교시 → 창체 (입력 불가)
+    - 🔒 = 창체 (입력 불가)
     """)
 
     if not classes:
@@ -648,7 +601,6 @@ with tab2:
     else:
         tt = st.session_state.timetable.get(subj, {})
 
-        # 헤더
         hcols = st.columns([1.5] + [1]*5)
         hcols[0].markdown("**교시 \\ 요일**")
         for i, day in enumerate(WEEKDAYS):
@@ -671,18 +623,17 @@ with tab2:
                         placeholder="수업반")
                     if val.strip():
                         new_tt[key] = val.strip()
-                    elif key in new_tt:
-                        new_tt.pop(key, None)
+                    elif key in new_tt and new_tt[key] != "창체":
+                        del new_tt[key]
 
         if st.button("시간표 저장", type="primary"):
             st.session_state.timetable[subj] = new_tt
             st.success("시간표가 저장되었습니다!")
             st.rerun()
 
-        # CSV 업로드
         st.divider()
         st.markdown('<div class="section-title">📂 CSV 업로드 (선택)</div>', unsafe_allow_html=True)
-        st.caption("형식: `요일,교시,수업반` — 수업반은 고정이면 `6`, 교차면 `8,4`")
+        st.caption("형식: `요일,교시,수업반` — 고정이면 `6`, 교차면 `8,4`")
         upload = st.file_uploader("CSV", type=["csv"], key="ttu")
         if upload:
             try:
@@ -695,7 +646,6 @@ with tab2:
                     key = f"{day}_{per}"
                     if (day, per) not in BLOCKED_CELLS:
                         new_tt2[key] = val
-                # 창체 고정
                 for day, per in BLOCKED_CELLS:
                     new_tt2[f"{day}_{per}"] = "창체"
                 st.session_state.timetable[subj] = new_tt2
@@ -710,11 +660,18 @@ with tab2:
 # ══════════════════════════════════════════════════════════
 with tab3:
     st.markdown('<div class="section-title">📅 학사일정 입력</div>', unsafe_allow_html=True)
-    st.caption("🟩 원시간표  🟦 교차시간표  ⬜ 결강(회색)  🟥 공휴일  🟪 시험")
 
-    try:
-        all_dates = get_dates(sem)
-    except:
+    # 범례
+    leg_cols = st.columns(6)
+    leg_cols[0].markdown('<span class="b-orig">원시간표</span>', unsafe_allow_html=True)
+    leg_cols[1].markdown('<span class="b-cross">교차시간표</span>', unsafe_allow_html=True)
+    leg_cols[2].markdown("⬜ 결강")
+    leg_cols[3].markdown("🔴 공휴일")
+    leg_cols[4].markdown("🟣 시험")
+    leg_cols[5].markdown("🔄 요일변경")
+
+    all_dates = get_dates(sem_start, sem_end)
+    if not all_dates:
         st.error("학기 날짜를 확인해주세요.")
         st.stop()
 
@@ -727,26 +684,33 @@ with tab3:
     cur_m = date(start_d.year, start_d.month, 1)
     while cur_m <= end_d:
         months.append(cur_m)
-        cur_m = date(cur_m.year + (1 if cur_m.month == 12 else 0),
-                     (cur_m.month % 12) + 1, 1)
+        next_month = cur_m.month + 1
+        next_year = cur_m.year
+        if next_month > 12:
+            next_month = 1
+            next_year += 1
+        cur_m = date(next_year, next_month, 1)
 
     for m in months:
         st.markdown(f"#### {m.year}년 {m.month}월")
         _, days_in = calendar.monthrange(m.year, m.month)
 
-        # 주별로 묶기 (월~금)
+        # 요일 헤더
+        head_cols = st.columns(5)
+        for i, day in enumerate(WEEKDAYS):
+            head_cols[i].markdown(f"**{day}**")
+
+        # 주별로 묶기
         weeks = {}
         for day_num in range(1, days_in + 1):
             d = date(m.year, m.month, day_num)
             if d < start_d or d > end_d or d.weekday() >= 5:
                 continue
-            # ISO week 기준
             wk = d.isocalendar()[1]
             weeks.setdefault(wk, {})
             weeks[wk][d.weekday()] = d
 
-        for wk, wk_dates in weeks.items():
-            # 5열 (월~금)
+        for wk, wk_dates in sorted(weeks.items()):
             cols = st.columns(5)
             for wd in range(5):
                 with cols[wd]:
@@ -756,9 +720,11 @@ with tab3:
                         hol = holidays.get(dk, "")
                         exam = is_exam_day(subj, d)
                         cur_sch = sch.get(dk, {"type":"","day_override":"","note":""})
+                        if not isinstance(cur_sch, dict):
+                            cur_sch = {"type":"","day_override":"","note":""}
                         actual_day = WEEKDAYS[d.weekday()]
 
-                        label = f"**{d.strftime('%d')}({actual_day})**"
+                        label = f"**{d.day}일**"
 
                         if hol:
                             st.markdown(f"🔴 {label}")
@@ -770,18 +736,18 @@ with tab3:
                             st.markdown(label)
 
                             # 요일변경
-                            day_opts = ["변경없음"] + WEEKDAYS
-                            cur_override = cur_sch.get("day_override","")
-                            ov_idx = day_opts.index(cur_override) if cur_override in day_opts else 0
-                            sel_day = st.selectbox("수업요일", day_opts, index=ov_idx,
+                            day_opts = ["—"] + [x for x in WEEKDAYS if x != actual_day]
+                            cur_ov = cur_sch.get("day_override","")
+                            ov_idx = day_opts.index(cur_ov) if cur_ov in day_opts else 0
+                            sel_day = st.selectbox(f"🔄요일", day_opts, index=ov_idx,
                                 key=f"do_{dk}", label_visibility="collapsed")
 
+                            # 원/교/결강
                             cur_type = cur_sch.get("type", "")
-                            # 원/교/결강 라디오
-                            type_opts = ["미설정","원","교","결강"]
+                            type_opts = ["—","원","교","결강"]
                             t_idx = type_opts.index(cur_type) if cur_type in type_opts else 0
                             sel_type = st.radio("유형", type_opts, index=t_idx,
-                                key=f"st_{dk}", label_visibility="collapsed")
+                                key=f"st_{dk}", label_visibility="collapsed", horizontal=True)
 
                             # 비고
                             cur_note = cur_sch.get("note","")
@@ -789,12 +755,14 @@ with tab3:
                                 key=f"nt_{dk}", label_visibility="collapsed", placeholder="메모")
 
                             sch[dk] = {
-                                "type": sel_type if sel_type != "미설정" else "",
-                                "day_override": sel_day if sel_day != "변경없음" else "",
-                                "note": sel_note
+                                "type": sel_type if sel_type != "—" else "",
+                                "day_override": sel_day if sel_day != "—" else "",
+                                "note": sel_note,
                             }
                     else:
                         st.markdown("&nbsp;")
+
+            st.markdown("---")
 
     st.session_state.schedule[subj] = sch
 
@@ -810,15 +778,14 @@ with tab4:
         st.warning("사이드바에서 반을 먼저 선택해주세요.")
         st.stop()
 
-    try:
-        all_dates = get_dates(sem)
-    except:
+    all_dates = get_dates(sem_start, sem_end)
+    if not all_dates:
         st.error("학기 날짜를 확인해주세요.")
         st.stop()
 
-    progress = compute_progress(subj, sem, classes)
+    start_d = all_dates[0]
+    progress, total_hours = compute_progress(subj, sem_start, sem_end, classes)
 
-    # 날짜별 표를 DataFrame으로 변환
     school_dates = [d for d in all_dates if d.weekday() < 5]
     rows = []
     for d in school_dates:
@@ -844,95 +811,85 @@ with tab4:
             elif stype == "결강":
                 row[cls] = "결강"
             elif cls in day_prog:
-                row[cls] = day_prog[cls].get("차시","")
+                v = day_prog[cls].get("차시","")
+                row[cls] = str(v) if v else ""
             else:
                 row[cls] = ""
         row["비고"] = note
-        row["_date"] = dk  # 숨김 키
+        row["_date"] = dk
         rows.append(row)
 
     df = pd.DataFrame(rows)
 
-    # 편집 가능한 열 설정
     col_config = {
         "날짜": st.column_config.TextColumn("날짜", disabled=True, width="small"),
         "요일": st.column_config.TextColumn("요일", disabled=True, width="small"),
         "원/교": st.column_config.TextColumn("원/교", disabled=True, width="small"),
         "비고": st.column_config.TextColumn("비고", width="medium"),
-        "_date": None,  # 숨김
+        "_date": None,
     }
     for cls in classes:
         col_config[cls] = st.column_config.TextColumn(cls, width="small")
 
-    edited_df = st.data_editor(df, use_container_width=True, height=600,
-        column_config=col_config, key="progress_editor", hide_index=True)
+    edited_df = st.data_editor(df, use_container_width=True, height=550,
+        column_config=col_config, key="pe", hide_index=True)
 
     if st.button("수정 저장", type="primary"):
         overrides = st.session_state.overrides.get(subj, {})
-        notes_update = {}
 
-        for _, row in edited_df.iterrows():
+        for idx, row in edited_df.iterrows():
             dk = row["_date"]
-            orig_row = df[df["_date"] == dk].iloc[0] if len(df[df["_date"] == dk]) > 0 else None
+            if idx >= len(df):
+                continue
+            orig_row = df.iloc[idx]
 
             for cls in classes:
-                new_val = row[cls]
-                orig_val = orig_row[cls] if orig_row is not None else ""
-
-                if str(new_val) != str(orig_val):
+                new_val = str(row[cls]).strip() if pd.notna(row[cls]) else ""
+                orig_val = str(orig_row[cls]).strip() if pd.notna(orig_row[cls]) else ""
+                if new_val != orig_val:
                     if dk not in overrides:
                         overrides[dk] = {}
-                    try:
-                        overrides[dk][cls] = int(new_val) if new_val and str(new_val).isdigit() else str(new_val)
-                    except:
-                        overrides[dk][cls] = str(new_val)
+                    overrides[dk][cls] = new_val
 
             # 비고 업데이트
-            if row["비고"]:
+            new_note = str(row["비고"]).strip() if pd.notna(row["비고"]) else ""
+            orig_note = str(orig_row["비고"]).strip() if pd.notna(orig_row["비고"]) else ""
+            if new_note != orig_note:
                 sch_entry = st.session_state.schedule.get(subj, {}).get(dk, {})
-                sch_entry["note"] = str(row["비고"])
+                if not isinstance(sch_entry, dict):
+                    sch_entry = {}
+                sch_entry["note"] = new_note
                 st.session_state.schedule.setdefault(subj, {})[dk] = sch_entry
 
         st.session_state.overrides[subj] = overrides
         st.success("수정 내용이 저장되었습니다!")
         st.rerun()
 
-    # ── 차시 메모 편집 ──
+    # ── 차시 메모 ──
     st.divider()
     st.markdown('<div class="section-title">📖 차시별 메모</div>', unsafe_allow_html=True)
-    st.caption("차시별 수업 내용을 메모하세요.")
+    st.caption("각 차시에 수업할 내용을 메모하세요.")
 
-    max_lesson = max((total_hours.get(cls, 0) for cls in classes), default=0) if 'total_hours' in dir() else 0
-    if max_lesson == 0:
-        # 재계산
-        progress_temp = compute_progress(subj, sem, classes)
-        th_temp = {cls: 0 for cls in classes}
-        for dk, dd in progress_temp.items():
-            for cls, info in dd.items():
-                if info.get("차시") and cls in th_temp:
-                    th_temp[cls] += 1
-        max_lesson = max(th_temp.values()) if th_temp else 0
+    max_lesson = max(total_hours.values()) if total_hours else 0
 
     if max_lesson > 0:
         notes = st.session_state.lesson_notes.get(subj, {})
-        note_rows = []
-        for ln in range(1, max_lesson + 1):
-            note_rows.append({"차시": ln, "메모": notes.get(str(ln), "")})
-
+        note_rows = [{"차시": ln, "메모": notes.get(str(ln), "")} for ln in range(1, max_lesson + 1)]
         note_df = pd.DataFrame(note_rows)
+
         edited_notes = st.data_editor(note_df, use_container_width=True, hide_index=True,
             column_config={
                 "차시": st.column_config.NumberColumn("차시", disabled=True, width="small"),
                 "메모": st.column_config.TextColumn("메모", width="large"),
-            }, key="note_editor")
+            }, key="ne")
 
-        if st.button("메모 저장", type="primary", key="save_notes"):
+        if st.button("메모 저장", type="primary", key="sn"):
             new_notes = {}
             for _, row in edited_notes.iterrows():
                 if row["메모"]:
                     new_notes[str(int(row["차시"]))] = str(row["메모"])
             st.session_state.lesson_notes[subj] = new_notes
-            st.success("메모가 저장되었습니다!")
+            st.success("메모 저장 완료!")
             st.rerun()
     else:
-        st.info("시간표와 학사일정을 입력하면 차시가 자동으로 생성됩니다.")
+        st.info("시간표와 학사일정을 입력하면 차시가 자동 생성됩니다.")
